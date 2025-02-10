@@ -31,11 +31,11 @@ const Index = () => {
     const API_KEY = localStorage.getItem('GEMINI_API_KEY');
     
     if (!API_KEY) {
-      const key = prompt("Please enter your Google Gemini API Key:");
-      if (!key) {
+      const userInput = window.prompt("Please enter your Google Gemini API Key:");
+      if (!userInput) {
         throw new Error("API key is required");
       }
-      localStorage.setItem('GEMINI_API_KEY', key);
+      localStorage.setItem('GEMINI_API_KEY', userInput);
     }
 
     const genAI = new GoogleGenerativeAI(API_KEY || '');
