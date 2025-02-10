@@ -38,44 +38,59 @@ const Index = () => {
       localStorage.setItem('GEMINI_API_KEY', userInput);
     }
 
-    const genAI = new GoogleGenerativeAI(API_KEY || '');
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+    const currentApiKey = localStorage.getItem('GEMINI_API_KEY');
+    if (!currentApiKey) {
+      throw new Error("API key is required");
+    }
 
-    const prompt = `Analyze this invoice image and extract the following information in a JSON format:
-    - Supplier Name
-    - Invoice Date
-    - Invoice Number
-    - Total Amount
-    - Due Date
-    - Tax Amount
-    - Payment Terms
-    - Purchase Order Number
-    
-    Return ONLY the JSON object with these fields, nothing else.`;
-
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: base64Image
-        }
-      }
-    ]);
-
-    const response = await result.response;
-    const text = response.text();
-    
     try {
-      // Extract JSON from the response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        throw new Error("No JSON found in response");
+      const genAI = new GoogleGenerativeAI(currentApiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+
+      const prompt = `Analyze this invoice image and extract the following information in a JSON format:
+      - Supplier Name
+      - Invoice Date
+      - Invoice Number
+      - Total Amount
+      - Due Date
+      - Tax Amount
+      - Payment Terms
+      - Purchase Order Number
+      
+      Return ONLY the JSON object with these fields, nothing else.`;
+
+      const result = await model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            mimeType: "image/jpeg",
+            data: base64Image
+          }
+        }
+      ]);
+
+      const response = await result.response;
+      const text = response.text();
+      
+      try {
+        // Extract JSON from the response
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+          throw new Error("No JSON found in response");
+        }
+        return JSON.parse(jsonMatch[0]);
+      } catch (error) {
+        console.error("Failed to parse JSON:", error);
+        throw new Error("Failed to parse extracted data");
       }
-      return JSON.parse(jsonMatch[0]);
     } catch (error) {
-      console.error("Failed to parse JSON:", error);
-      throw new Error("Failed to parse extracted data");
+      console.error("Gemini API Error:", error);
+      if (error instanceof Error && error.message.includes("403")) {
+        // If we get a 403 error, clear the API key and prompt for a new one
+        localStorage.removeItem('GEMINI_API_KEY');
+        toast.error("Invalid API key. Please try again with a valid key.");
+      }
+      throw error;
     }
   };
 
