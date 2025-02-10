@@ -15,10 +15,14 @@ const Index = () => {
       // TODO: Implement actual data extraction logic
       // This is a mockup for now
       const mockData = {
+        "Supplier Name": "Tech Solutions Ltd",
+        "Invoice Date": "2024-01-20",
         "Invoice Number": "INV-2024-001",
-        "Date": "2024-01-20",
-        "Amount": "$1,234.56",
-        "Vendor": "Example Corp",
+        "Total Amount": "$1,234.56",
+        "Due Date": "2024-02-20",
+        "Tax Amount": "$123.45",
+        "Payment Terms": "Net 30",
+        "Purchase Order": "PO-2024-001"
       };
       
       toast.success("Data extracted successfully!");
