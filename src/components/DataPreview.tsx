@@ -1,14 +1,22 @@
 
 import { motion } from "framer-motion";
 
+interface LineItem {
+  description: string;
+  quantity?: number;
+  unitPrice?: number;
+  total?: number;
+}
+
 interface DataPreviewProps {
-  data: Record<string, string>;
+  data: Record<string, any>;
 }
 
 const DataPreview = ({ data }: DataPreviewProps) => {
-  // Group the fields into categories
   const primaryFields = ["Supplier Name", "Invoice Number", "Invoice Date", "Total Amount"];
-  const secondaryFields = Object.keys(data).filter(key => !primaryFields.includes(key));
+  const secondaryFields = Object.keys(data).filter(
+    key => !primaryFields.includes(key) && key !== "Line Items"
+  );
 
   return (
     <motion.div
@@ -41,6 +49,38 @@ const DataPreview = ({ data }: DataPreviewProps) => {
                   <p className="text-gray-900 bg-gray-50 p-2 rounded-md">{data[key]}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        )}
+
+        {data["Line Items"] && data["Line Items"].length > 0 && (
+          <div>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Line Items</h3>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unit Price</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {data["Line Items"].map((item: LineItem, index: number) => (
+                    <tr key={index}>
+                      <td className="px-4 py-3 text-sm text-gray-900">{item.description}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 text-right">{item.quantity}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                        {item.unitPrice ? `$${item.unitPrice.toFixed(2)}` : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                        {item.total ? `$${item.total.toFixed(2)}` : '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}

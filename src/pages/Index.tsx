@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import FileUpload from "../components/FileUpload";
 import DataPreview from "../components/DataPreview";
@@ -8,7 +7,7 @@ import { toast } from "sonner";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const Index = () => {
-  const [extractedData, setExtractedData] = useState<Record<string, string> | null>(null);
+  const [extractedData, setExtractedData] = useState<Record<string, any> | null>(null);
   const [answer, setAnswer] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -56,8 +55,9 @@ const Index = () => {
       - Tax Amount
       - Payment Terms
       - Purchase Order Number
+      - Line Items (extract all line items with their descriptions, quantities, unit prices, and total amounts in an array)
       
-      Return ONLY the JSON object with these fields, nothing else.`;
+      Return ONLY the JSON object with these fields, make sure the Line Items are in an array format. The response should be a valid JSON object.`;
 
       const result = await model.generateContent([
         prompt,
@@ -73,7 +73,6 @@ const Index = () => {
       const text = response.text();
       
       try {
-        // Extract JSON from the response
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
           throw new Error("No JSON found in response");
@@ -86,7 +85,6 @@ const Index = () => {
     } catch (error) {
       console.error("Gemini API Error:", error);
       if (error instanceof Error && error.message.includes("403")) {
-        // If we get a 403 error, clear the API key and prompt for a new one
         localStorage.removeItem('GEMINI_API_KEY');
         toast.error("Invalid API key. Please try again with a valid key.");
       }
