@@ -45,7 +45,7 @@ const Index = () => {
 
     try {
       const genAI = new GoogleGenerativeAI(currentApiKey);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
       const prompt = `Analyze this invoice image and extract the following information in a JSON format:
       - Supplier Name
