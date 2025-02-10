@@ -5,38 +5,119 @@ import DataPreview from "../components/DataPreview";
 import QueryInterface from "../components/QueryInterface";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const Index = () => {
   const [extractedData, setExtractedData] = useState<Record<string, string> | null>(null);
   const [answer, setAnswer] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const getBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result.split(',')[1]);
+        } else {
+          reject(new Error('Failed to convert file to base64'));
+        }
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const extractInvoiceData = async (base64Image: string) => {
+    const API_KEY = localStorage.getItem('GEMINI_API_KEY');
+    
+    if (!API_KEY) {
+      const key = prompt("Please enter your Google Gemini API Key:");
+      if (!key) {
+        throw new Error("API key is required");
+      }
+      localStorage.setItem('GEMINI_API_KEY', key);
+    }
+
+    const genAI = new GoogleGenerativeAI(API_KEY || '');
+    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+
+    const prompt = `Analyze this invoice image and extract the following information in a JSON format:
+    - Supplier Name
+    - Invoice Date
+    - Invoice Number
+    - Total Amount
+    - Due Date
+    - Tax Amount
+    - Payment Terms
+    - Purchase Order Number
+    
+    Return ONLY the JSON object with these fields, nothing else.`;
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          mimeType: "image/jpeg",
+          data: base64Image
+        }
+      }
+    ]);
+
+    const response = await result.response;
+    const text = response.text();
+    
+    try {
+      // Extract JSON from the response
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON found in response");
+      }
+      return JSON.parse(jsonMatch[0]);
+    } catch (error) {
+      console.error("Failed to parse JSON:", error);
+      throw new Error("Failed to parse extracted data");
+    }
+  };
 
   const handleFileSelect = async (file: File) => {
     try {
-      // TODO: Implement actual data extraction logic
-      // This is a mockup for now
-      const mockData = {
-        "Supplier Name": "Tech Solutions Ltd",
-        "Invoice Date": "2024-01-20",
-        "Invoice Number": "INV-2024-001",
-        "Total Amount": "$1,234.56",
-        "Due Date": "2024-02-20",
-        "Tax Amount": "$123.45",
-        "Payment Terms": "Net 30",
-        "Purchase Order": "PO-2024-001"
-      };
-      
+      setIsLoading(true);
+      const base64 = await getBase64(file);
+      const data = await extractInvoiceData(base64);
+      setExtractedData(data);
       toast.success("Data extracted successfully!");
-      setExtractedData(mockData);
     } catch (error) {
-      toast.error("Failed to extract data from the file");
+      toast.error(error instanceof Error ? error.message : "Failed to extract data from the file");
       console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleQuestion = async (question: string) => {
     try {
-      // TODO: Implement actual Q&A logic
-      setAnswer(`This is a mock answer to your question: "${question}"`);
+      if (!extractedData) {
+        toast.error("Please upload an invoice first");
+        return;
+      }
+
+      const API_KEY = localStorage.getItem('GEMINI_API_KEY');
+      if (!API_KEY) {
+        throw new Error("API key is required");
+      }
+
+      const genAI = new GoogleGenerativeAI(API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+
+      const prompt = `Given this invoice data: ${JSON.stringify(extractedData)}
+      
+      Answer this question: ${question}
+      
+      Provide a clear and concise answer based only on the invoice data provided.`;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      setAnswer(response.text());
     } catch (error) {
       toast.error("Failed to process your question");
       console.error(error);
@@ -61,7 +142,13 @@ const Index = () => {
 
         <FileUpload onFileSelect={handleFileSelect} />
 
-        {extractedData && (
+        {isLoading && (
+          <div className="text-center py-8">
+            <p className="text-gray-600">Analyzing invoice...</p>
+          </div>
+        )}
+
+        {extractedData && !isLoading && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
