@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import FileUpload from "../components/FileUpload";
 import DataPreview from "../components/DataPreview";
@@ -6,7 +5,7 @@ import QueryInterface from "../components/QueryInterface";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { supabase } from "../lib/supabaseClient";
+import { localDB } from "../lib/supabaseClient";
 
 const Index = () => {
   const [extractedData, setExtractedData] = useState<Record<string, any> | null>(null);
@@ -31,44 +30,23 @@ const Index = () => {
   const saveToDatabase = async (invoiceData: any) => {
     try {
       // Insert main invoice data
-      const { data: invoice, error: invoiceError } = await supabase
-        .from('invoices')
-        .insert([{
-          supplier_name: invoiceData["Supplier Name"],
-          invoice_number: invoiceData["Invoice Number"],
-          invoice_date: invoiceData["Invoice Date"],
-          total_amount: invoiceData["Total Amount"],
-          vat_amount: invoiceData["VAT Amount"] || invoiceData["Tax Amount"],
-          due_date: invoiceData["Due Date"],
-          payment_terms: invoiceData["Payment Terms"],
-          purchase_order_number: invoiceData["Purchase Order Number"]
-        }])
-        .select()
-        .single();
+      const { error: invoiceError } = await localDB.insert('invoices', {
+        supplier_name: invoiceData["Supplier Name"],
+        invoice_number: invoiceData["Invoice Number"],
+        invoice_date: invoiceData["Invoice Date"],
+        total_amount: invoiceData["Total Amount"],
+        vat_amount: invoiceData["VAT Amount"] || invoiceData["Tax Amount"],
+        due_date: invoiceData["Due Date"],
+        payment_terms: invoiceData["Payment Terms"],
+        purchase_order_number: invoiceData["Purchase Order Number"],
+        line_items: invoiceData["Line Items"]
+      });
 
       if (invoiceError) throw invoiceError;
-
-      // Insert line items
-      if (invoiceData["Line Items"] && invoice) {
-        const lineItems = invoiceData["Line Items"].map((item: any) => ({
-          invoice_id: invoice.id,
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unitPrice,
-          total: item.total
-        }));
-
-        const { error: lineItemsError } = await supabase
-          .from('invoice_line_items')
-          .insert(lineItems);
-
-        if (lineItemsError) throw lineItemsError;
-      }
-
-      toast.success("Invoice data saved to database successfully!");
+      toast.success("Invoice data saved successfully!");
     } catch (error) {
-      console.error("Database error:", error);
-      toast.error("Failed to save invoice data to database");
+      console.error("Storage error:", error);
+      toast.error("Failed to save invoice data");
       throw error;
     }
   };

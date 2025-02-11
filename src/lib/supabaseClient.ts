@@ -1,25 +1,53 @@
 
-import { createClient } from '@supabase/supabase-js';
+interface InvoiceData {
+  id?: number;
+  supplier_name: string;
+  invoice_number: string;
+  invoice_date: string;
+  total_amount: number;
+  vat_amount?: number;
+  due_date?: string;
+  payment_terms?: string;
+  purchase_order_number?: string;
+  line_items?: Array<{
+    description: string;
+    quantity?: number;
+    unit_price?: number;
+    total?: number;
+  }>;
+}
 
-const getSupabaseCredentials = () => {
-  const url = localStorage.getItem('SUPABASE_URL');
-  const key = localStorage.getItem('SUPABASE_ANON_KEY');
-
-  if (!url || !key) {
-    const userUrl = window.prompt("Please enter your Supabase URL:");
-    const userKey = window.prompt("Please enter your Supabase Anonymous Key:");
-    
-    if (userUrl && userKey) {
-      localStorage.setItem('SUPABASE_URL', userUrl);
-      localStorage.setItem('SUPABASE_ANON_KEY', userKey);
-      return { url: userUrl, key: userKey };
-    }
-    throw new Error("Supabase credentials are required");
+class LocalStorageDB {
+  private getInvoices(): InvoiceData[] {
+    const invoices = localStorage.getItem('invoices');
+    return invoices ? JSON.parse(invoices) : [];
   }
 
-  return { url, key };
-};
+  private saveInvoices(invoices: InvoiceData[]): void {
+    localStorage.setItem('invoices', JSON.stringify(invoices));
+  }
 
-const { url: supabaseUrl, key: supabaseAnonKey } = getSupabaseCredentials();
+  async insert(table: string, data: InvoiceData) {
+    if (table === 'invoices') {
+      const invoices = this.getInvoices();
+      const newInvoice = {
+        ...data,
+        id: Date.now(), // Simple way to generate unique IDs
+      };
+      invoices.push(newInvoice);
+      this.saveInvoices(invoices);
+      return { data: newInvoice, error: null };
+    }
+    return { data: null, error: 'Invalid table' };
+  }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  async select(table: string) {
+    if (table === 'invoices') {
+      return { data: this.getInvoices(), error: null };
+    }
+    return { data: null, error: 'Invalid table' };
+  }
+}
+
+export const localDB = new LocalStorageDB();
+
