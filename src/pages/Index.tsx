@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import FileUpload from "../components/FileUpload";
 import DataPreview from "../components/DataPreview";
@@ -29,7 +30,14 @@ const Index = () => {
 
   const saveToDatabase = async (invoiceData: any) => {
     try {
-      // Insert main invoice data
+      // Ensure line items are properly formatted before saving
+      const formattedLineItems = invoiceData["Line Items"]?.map((item: any) => ({
+        description: item.description || item.Description || "",  // Handle both cases
+        quantity: item.quantity || item.Quantity || 0,
+        unit_price: item.unitPrice || item["Unit Price"] || item.unit_price || 0,
+        total: item.total || item.Total || 0
+      }));
+
       const { error: invoiceError } = await localDB.insert('invoices', {
         supplier_name: invoiceData["Supplier Name"],
         invoice_number: invoiceData["Invoice Number"],
@@ -39,7 +47,7 @@ const Index = () => {
         due_date: invoiceData["Due Date"],
         payment_terms: invoiceData["Payment Terms"],
         purchase_order_number: invoiceData["Purchase Order Number"],
-        line_items: invoiceData["Line Items"]
+        line_items: formattedLineItems
       });
 
       if (invoiceError) throw invoiceError;
@@ -87,6 +95,12 @@ const Index = () => {
       - Quantity
       - Unit Price
       - Total Amount
+      
+      Please ensure the line items array contains objects with consistent field names:
+      - "description" for the item description
+      - "quantity" for the quantity
+      - "unitPrice" for the unit price
+      - "total" for the total amount
       
       If there are any tax-related fields (VAT, GST, Sales Tax), include them as well.
       Return ONLY the JSON object with these fields, make sure the Line Items are in an array format. The response should be a valid JSON object.`;
