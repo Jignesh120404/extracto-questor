@@ -13,7 +13,16 @@ interface DataPreviewProps {
 }
 
 const DataPreview = ({ data }: DataPreviewProps) => {
-  const primaryFields = ["Supplier Name", "Invoice Number", "Invoice Date", "Total Amount"];
+  const primaryFields = [
+    "Supplier Name",
+    "Invoice Number",
+    "Invoice Date",
+    "Total Amount",
+    "VAT Amount",
+    "Tax Amount",
+    "Due Date"
+  ];
+  
   const secondaryFields = Object.keys(data).filter(
     key => !primaryFields.includes(key) && key !== "Line Items"
   );
@@ -32,7 +41,9 @@ const DataPreview = ({ data }: DataPreviewProps) => {
               data[key] && (
                 <div key={key} className="space-y-1">
                   <label className="text-sm font-medium text-gray-500">{key}</label>
-                  <p className="text-gray-900 bg-gray-50 p-2 rounded-md">{data[key]}</p>
+                  <p className="text-gray-900 bg-gray-50 p-2 rounded-md">
+                    {key.toLowerCase().includes('amount') ? `$${data[key]}` : data[key]}
+                  </p>
                 </div>
               )
             ))}
@@ -60,16 +71,16 @@ const DataPreview = ({ data }: DataPreviewProps) => {
               <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Quantity</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Unit Price</th>
-                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {data["Line Items"].map((item: LineItem, index: number) => (
-                    <tr key={index}>
-                      <td className="px-4 py-3 text-sm text-gray-900">{item.description}</td>
+                    <tr key={index} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm text-gray-900 whitespace-pre-wrap">{item.description}</td>
                       <td className="px-4 py-3 text-sm text-gray-900 text-right">{item.quantity}</td>
                       <td className="px-4 py-3 text-sm text-gray-900 text-right">
                         {item.unitPrice ? `$${item.unitPrice.toFixed(2)}` : '-'}

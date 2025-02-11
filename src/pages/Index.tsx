@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import FileUpload from "../components/FileUpload";
 import DataPreview from "../components/DataPreview";
@@ -5,6 +6,7 @@ import QueryInterface from "../components/QueryInterface";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { supabase } from "../lib/supabaseClient";
 
 const Index = () => {
   const [extractedData, setExtractedData] = useState<Record<string, any> | null>(null);
@@ -24,6 +26,51 @@ const Index = () => {
       };
       reader.onerror = error => reject(error);
     });
+  };
+
+  const saveToDatabase = async (invoiceData: any) => {
+    try {
+      // Insert main invoice data
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .insert([{
+          supplier_name: invoiceData["Supplier Name"],
+          invoice_number: invoiceData["Invoice Number"],
+          invoice_date: invoiceData["Invoice Date"],
+          total_amount: invoiceData["Total Amount"],
+          vat_amount: invoiceData["VAT Amount"] || invoiceData["Tax Amount"],
+          due_date: invoiceData["Due Date"],
+          payment_terms: invoiceData["Payment Terms"],
+          purchase_order_number: invoiceData["Purchase Order Number"]
+        }])
+        .select()
+        .single();
+
+      if (invoiceError) throw invoiceError;
+
+      // Insert line items
+      if (invoiceData["Line Items"] && invoice) {
+        const lineItems = invoiceData["Line Items"].map((item: any) => ({
+          invoice_id: invoice.id,
+          description: item.description,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          total: item.total
+        }));
+
+        const { error: lineItemsError } = await supabase
+          .from('invoice_line_items')
+          .insert(lineItems);
+
+        if (lineItemsError) throw lineItemsError;
+      }
+
+      toast.success("Invoice data saved to database successfully!");
+    } catch (error) {
+      console.error("Database error:", error);
+      toast.error("Failed to save invoice data to database");
+      throw error;
+    }
   };
 
   const extractInvoiceData = async (base64Image: string) => {
@@ -52,11 +99,18 @@ const Index = () => {
       - Invoice Number
       - Total Amount
       - Due Date
-      - Tax Amount
+      - VAT Amount or Tax Amount (if present)
       - Payment Terms
       - Purchase Order Number
       - Line Items (extract all line items with their descriptions, quantities, unit prices, and total amounts in an array)
       
+      For line items, make sure to capture:
+      - Full item description (including any notes or specifications)
+      - Quantity
+      - Unit Price
+      - Total Amount
+      
+      If there are any tax-related fields (VAT, GST, Sales Tax), include them as well.
       Return ONLY the JSON object with these fields, make sure the Line Items are in an array format. The response should be a valid JSON object.`;
 
       const result = await model.generateContent([
@@ -77,7 +131,12 @@ const Index = () => {
         if (!jsonMatch) {
           throw new Error("No JSON found in response");
         }
-        return JSON.parse(jsonMatch[0]);
+        const extractedData = JSON.parse(jsonMatch[0]);
+        
+        // Save to database
+        await saveToDatabase(extractedData);
+        
+        return extractedData;
       } catch (error) {
         console.error("Failed to parse JSON:", error);
         throw new Error("Failed to parse extracted data");
@@ -98,7 +157,7 @@ const Index = () => {
       const base64 = await getBase64(file);
       const data = await extractInvoiceData(base64);
       setExtractedData(data);
-      toast.success("Data extracted successfully!");
+      toast.success("Data extracted and saved successfully!");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to extract data from the file");
       console.error(error);
