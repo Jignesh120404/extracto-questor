@@ -6,7 +6,7 @@ import QueryInterface from "../components/QueryInterface";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { localDB } from "../lib/supabaseClient";
+import { supabase } from "../lib/supabaseClient";
 
 const Index = () => {
   const [extractedData, setExtractedData] = useState<Record<string, any> | null>(null);
@@ -30,27 +30,41 @@ const Index = () => {
 
   const saveToDatabase = async (invoiceData: any) => {
     try {
-      // Ensure line items are properly formatted before saving
-      const formattedLineItems = invoiceData["Line Items"]?.map((item: any) => ({
-        description: item.description || item.Description || "",  // Handle both cases
-        quantity: item.quantity || item.Quantity || 0,
-        unit_price: item.unitPrice || item["Unit Price"] || item.unit_price || 0,
-        total: item.total || item.Total || 0
-      }));
-
-      const { error: invoiceError } = await localDB.insert('invoices', {
-        supplier_name: invoiceData["Supplier Name"],
-        invoice_number: invoiceData["Invoice Number"],
-        invoice_date: invoiceData["Invoice Date"],
-        total_amount: invoiceData["Total Amount"],
-        vat_amount: invoiceData["VAT Amount"] || invoiceData["Tax Amount"],
-        due_date: invoiceData["Due Date"],
-        payment_terms: invoiceData["Payment Terms"],
-        purchase_order_number: invoiceData["Purchase Order Number"],
-        line_items: formattedLineItems
-      });
+      // First insert the invoice
+      const { data: invoice, error: invoiceError } = await supabase
+        .from('invoices')
+        .insert({
+          supplier_name: invoiceData["Supplier Name"],
+          invoice_number: invoiceData["Invoice Number"],
+          invoice_date: invoiceData["Invoice Date"],
+          total_amount: invoiceData["Total Amount"],
+          vat_amount: invoiceData["VAT Amount"] || invoiceData["Tax Amount"],
+          due_date: invoiceData["Due Date"],
+          payment_terms: invoiceData["Payment Terms"],
+          purchase_order_number: invoiceData["Purchase Order Number"]
+        })
+        .select()
+        .single();
 
       if (invoiceError) throw invoiceError;
+
+      // Then insert line items with the invoice_id
+      if (invoiceData["Line Items"] && invoice) {
+        const lineItems = invoiceData["Line Items"].map((item: any) => ({
+          invoice_id: invoice.id,
+          description: item.description || item.Description || "",
+          quantity: item.quantity || item.Quantity || 0,
+          unit_price: item.unitPrice || item["Unit Price"] || item.unit_price || 0,
+          total: item.total || item.Total || 0
+        }));
+
+        const { error: lineItemsError } = await supabase
+          .from('line_items')
+          .insert(lineItems);
+
+        if (lineItemsError) throw lineItemsError;
+      }
+
       toast.success("Invoice data saved successfully!");
     } catch (error) {
       console.error("Storage error:", error);
