@@ -9,7 +9,83 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      invoices: {
+        Row: {
+          created_at: string
+          due_date: string | null
+          id: string
+          invoice_date: string | null
+          invoice_number: string
+          payment_terms: string | null
+          purchase_order_number: string | null
+          supplier_name: string
+          total_amount: number | null
+          vat_amount: number | null
+        }
+        Insert: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number: string
+          payment_terms?: string | null
+          purchase_order_number?: string | null
+          supplier_name: string
+          total_amount?: number | null
+          vat_amount?: number | null
+        }
+        Update: {
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          invoice_number?: string
+          payment_terms?: string | null
+          purchase_order_number?: string | null
+          supplier_name?: string
+          total_amount?: number | null
+          vat_amount?: number | null
+        }
+        Relationships: []
+      }
+      line_items: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          invoice_id: string
+          quantity: number | null
+          total: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id: string
+          quantity?: number | null
+          total?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          invoice_id?: string
+          quantity?: number | null
+          total?: number | null
+          unit_price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "line_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
