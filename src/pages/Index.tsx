@@ -28,9 +28,50 @@ const Index = () => {
     });
   };
 
+  const formatDate = (dateString: string) => {
+    if (!dateString) return null;
+    try {
+      // Split the date string based on common separators
+      const parts = dateString.split(/[\/\-\.]/);
+      
+      // Check if we have a valid date parts array
+      if (parts.length !== 3) return null;
+      
+      // Assuming the format is DD/MM/YYYY or similar
+      // Convert to YYYY-MM-DD format
+      let day = parts[0];
+      let month = parts[1];
+      let year = parts[2];
+      
+      // Ensure year is 4 digits
+      if (year.length === 2) {
+        year = '20' + year;
+      }
+      
+      // Pad month and day with leading zeros if necessary
+      month = month.padStart(2, '0');
+      day = day.padStart(2, '0');
+      
+      // Return in PostgreSQL compatible format
+      return `${year}-${month}-${day}`;
+    } catch (error) {
+      console.error("Date parsing error:", error);
+      return null;
+    }
+  };
+
   const saveToDatabase = async (invoiceData: any) => {
     try {
-      console.log("Saving to database:", invoiceData); // Debug log
+      console.log("Original invoice data:", invoiceData); // Debug log
+      
+      // Format dates before inserting
+      const formattedInvoiceDate = formatDate(invoiceData["Invoice Date"]);
+      const formattedDueDate = formatDate(invoiceData["Due Date"]);
+      
+      console.log("Formatted dates:", { 
+        invoiceDate: formattedInvoiceDate, 
+        dueDate: formattedDueDate 
+      }); // Debug log
       
       // First insert the invoice
       const { data: invoice, error: invoiceError } = await supabase
@@ -38,10 +79,10 @@ const Index = () => {
         .insert({
           supplier_name: invoiceData["Supplier Name"],
           invoice_number: invoiceData["Invoice Number"],
-          invoice_date: invoiceData["Invoice Date"],
+          invoice_date: formattedInvoiceDate,
           total_amount: invoiceData["Total Amount"],
           vat_amount: invoiceData["VAT Amount"] || invoiceData["Tax Amount"],
-          due_date: invoiceData["Due Date"],
+          due_date: formattedDueDate,
           payment_terms: invoiceData["Payment Terms"],
           purchase_order_number: invoiceData["Purchase Order Number"]
         })
