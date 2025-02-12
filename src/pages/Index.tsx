@@ -30,6 +30,8 @@ const Index = () => {
 
   const saveToDatabase = async (invoiceData: any) => {
     try {
+      console.log("Saving to database:", invoiceData); // Debug log
+      
       // First insert the invoice
       const { data: invoice, error: invoiceError } = await supabase
         .from('invoices')
@@ -46,7 +48,12 @@ const Index = () => {
         .select()
         .single();
 
-      if (invoiceError) throw invoiceError;
+      if (invoiceError) {
+        console.error("Invoice insert error:", invoiceError); // Debug log
+        throw invoiceError;
+      }
+
+      console.log("Invoice saved:", invoice); // Debug log
 
       // Then insert line items with the invoice_id
       if (invoiceData["Line Items"] && invoice) {
@@ -58,11 +65,16 @@ const Index = () => {
           total: item.total || item.Total || 0
         }));
 
+        console.log("Saving line items:", lineItems); // Debug log
+
         const { error: lineItemsError } = await supabase
           .from('line_items')
           .insert(lineItems);
 
-        if (lineItemsError) throw lineItemsError;
+        if (lineItemsError) {
+          console.error("Line items insert error:", lineItemsError); // Debug log
+          throw lineItemsError;
+        }
       }
 
       toast.success("Invoice data saved successfully!");
@@ -119,6 +131,8 @@ const Index = () => {
       If there are any tax-related fields (VAT, GST, Sales Tax), include them as well.
       Return ONLY the JSON object with these fields, make sure the Line Items are in an array format. The response should be a valid JSON object.`;
 
+      console.log("Sending image to Gemini API..."); // Debug log
+
       const result = await model.generateContent([
         prompt,
         {
@@ -132,12 +146,16 @@ const Index = () => {
       const response = await result.response;
       const text = response.text();
       
+      console.log("Received response from Gemini:", text); // Debug log
+      
       try {
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
           throw new Error("No JSON found in response");
         }
         const extractedData = JSON.parse(jsonMatch[0]);
+        
+        console.log("Parsed extracted data:", extractedData); // Debug log
         
         // Save to database
         await saveToDatabase(extractedData);
@@ -206,9 +224,9 @@ const Index = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="min-h-screen bg-gray-50"
+      className="min-h-screen bg-gray-50 p-4"
     >
-      <div className="max-w-4xl mx-auto px-4 py-12 space-y-8">
+      <div className="max-w-4xl mx-auto py-12 space-y-8">
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-semibold text-gray-900">
             Invoice Data Extraction
