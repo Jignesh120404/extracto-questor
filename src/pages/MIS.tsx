@@ -3,31 +3,11 @@ import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabaseClient";
 import Sidebar from "../components/Sidebar";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip,
-  Legend
-} from "recharts";
-import { Loader2, TrendingUp, TrendingDown, DollarSign, Users } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { SummaryCards } from "@/components/dashboard/SummaryCards";
+import { SupplierRevenueChart } from "@/components/dashboard/SupplierRevenueChart";
+import { TopItemsTable } from "@/components/dashboard/TopItemsTable";
 
 interface InvoiceSummary {
   totalInvoices: number;
@@ -49,8 +29,6 @@ interface LineItem {
   unit_price: number;
   total: number;
 }
-
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 const MIS = () => {
   const [summary, setSummary] = useState<InvoiceSummary | null>(null);
@@ -135,120 +113,11 @@ const MIS = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Invoices</CardTitle>
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{summary?.totalInvoices}</div>
-                <p className="text-xs text-muted-foreground">
-                  +2.5% from last month
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                <TrendingUp className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  ${summary?.totalAmount.toFixed(2)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  +12.3% from last month
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Average Invoice</CardTitle>
-                <TrendingDown className="h-4 w-4 text-red-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  ${summary?.averageAmount.toFixed(2)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  -4.5% from last month
-                </p>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-lg transition-shadow">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">Active Suppliers</CardTitle>
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{summary?.supplierCount}</div>
-                <p className="text-xs text-muted-foreground">
-                  +1 new this month
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          <SummaryCards summary={summary} />
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <Card>
-              <CardHeader>
-                <CardTitle>Revenue by Supplier</CardTitle>
-                <CardDescription>Top 5 suppliers by revenue</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={supplierData}
-                        dataKey="total_amount"
-                        nameKey="supplier_name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        label
-                      >
-                        {supplierData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Top Items by Quantity</CardTitle>
-                <CardDescription>Highest quantity items</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Quantity</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {lineItems.map((item) => (
-                        <TableRow key={item.id}>
-                          <TableCell className="font-medium">{item.description}</TableCell>
-                          <TableCell className="text-right">{item.quantity}</TableCell>
-                          <TableCell className="text-right">${item.total?.toFixed(2)}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+            <SupplierRevenueChart supplierData={supplierData} />
+            <TopItemsTable lineItems={lineItems} />
           </div>
         </div>
       </main>
