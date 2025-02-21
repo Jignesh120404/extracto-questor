@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabaseClient";
@@ -10,6 +9,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
   BarChart,
   Bar,
   XAxis,
@@ -18,9 +25,17 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search } from "lucide-react";
 import { toast } from "sonner";
 import QueryInterface from "@/components/QueryInterface";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 interface InvoiceSummary {
   totalInvoices: number;
@@ -35,11 +50,24 @@ interface SupplierData {
   total_amount: number;
 }
 
+interface LineItem {
+  id: string;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  total: number;
+}
+
 const MIS = () => {
   const [summary, setSummary] = useState<InvoiceSummary | null>(null);
   const [supplierData, setSupplierData] = useState<SupplierData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [queryAnswer, setQueryAnswer] = useState<string>("");
+  const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [filteredItems, setFilteredItems] = useState<LineItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [itemsPerPage, setItemsPerPage] = useState(25);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,6 +102,19 @@ const MIS = () => {
 
           setSupplierData(supplierChartData);
         }
+
+        // Fetch line items data
+        const { data: items, error: itemsError } = await supabase
+          .from('line_items')
+          .select('*')
+          .order('quantity', { ascending: false });
+
+        if (itemsError) throw itemsError;
+
+        if (items) {
+          setLineItems(items);
+          setFilteredItems(items);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         toast.error('Failed to fetch dashboard data');
@@ -84,6 +125,15 @@ const MIS = () => {
 
     fetchData();
   }, []);
+
+  // Filter items based on search query
+  useEffect(() => {
+    const filtered = lineItems.filter(item =>
+      item.description?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    setFilteredItems(filtered);
+    setCurrentPage(1); // Reset to first page when search changes
+  }, [searchQuery, lineItems]);
 
   const handleQuestion = async (question: string) => {
     try {
@@ -150,6 +200,16 @@ const MIS = () => {
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
+  }
+
+  const totalPages = Math.ceil(filteredItems.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentItems = filteredItems.slice(startIndex, endIndex);
+
+  const pageNumbers = [];
+  for (let i = 1; i <= totalPages; i++) {
+    pageNumbers.push(i);
   }
 
   return (
@@ -258,6 +318,92 @@ const MIS = () => {
                   <Bar dataKey="total_amount" fill="#3b82f6" name="Total Amount" />
                 </BarChart>
               </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top Items Table */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle>Top Items by Quantity</CardTitle>
+            <CardDescription>View and search through items sorted by quantity</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="search"
+                    placeholder="Search by description..."
+                    className="pl-8 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+                <select
+                  className="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  value={itemsPerPage}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                >
+                  <option value={5}>Top 5</option>
+                  <option value={10}>Top 10</option>
+                  <option value={25}>Top 25</option>
+                </select>
+              </div>
+
+              <div className="rounded-md border">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Quantity</TableHead>
+                      <TableHead className="text-right">Unit Price</TableHead>
+                      <TableHead className="text-right">Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {currentItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell>{item.description}</TableCell>
+                        <TableCell className="text-right">{item.quantity}</TableCell>
+                        <TableCell className="text-right">${item.unit_price?.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">${item.total?.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                      className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                  {pageNumbers.map((page) => (
+                    <PaginationItem key={page}>
+                      <PaginationLink
+                        onClick={() => setCurrentPage(page)}
+                        isActive={currentPage === page}
+                      >
+                        {page}
+                      </PaginationLink>
+                    </PaginationItem>
+                  ))}
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                      className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
             </div>
           </CardContent>
         </Card>
