@@ -5,15 +5,14 @@ import { supabase } from "./supabaseClient";
 export async function extractInvoiceData(file: File) {
   try {
     // Get the Gemini API key from Supabase
-    const { data: { secret: GEMINI_API_KEY }, error: secretError } = await supabase
-      .from('secrets')
-      .select('secret')
-      .eq('name', 'GEMINI_API_KEY')
-      .single();
+    const { data, error: secretError } = await supabase
+      .rpc('get_secret', { secret_name: 'GEMINI_API_KEY' });
 
-    if (secretError || !GEMINI_API_KEY) {
+    if (secretError || !data) {
       throw new Error('Failed to get Gemini API key');
     }
+
+    const GEMINI_API_KEY = data;
 
     // Initialize Gemini
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
