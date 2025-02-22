@@ -6,7 +6,7 @@ export async function extractInvoiceData(file: File) {
   try {
     // Get the Gemini API key from Supabase
     const { data, error: secretError } = await supabase
-      .rpc('get_secret', { secret_name: 'GEMINI_API_KEY' });
+      .rpc('get_secret', { secret_name: 'GEMINI_API_KEY' } as { secret_name: string });
 
     if (secretError || !data) {
       throw new Error('Failed to get Gemini API key');
