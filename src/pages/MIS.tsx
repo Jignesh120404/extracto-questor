@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabaseClient";
@@ -8,6 +7,9 @@ import { toast } from "sonner";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
 import { SupplierRevenueChart } from "@/components/dashboard/SupplierRevenueChart";
 import { TopItemsTable } from "@/components/dashboard/TopItemsTable";
+import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface InvoiceSummary {
   totalInvoices: number;
@@ -35,6 +37,7 @@ const MIS = () => {
   const [supplierData, setSupplierData] = useState<SupplierData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -108,8 +111,17 @@ const MIS = () => {
         <div className="max-w-[1800px] mx-auto">
           <div className="flex items-center justify-between mb-8">
             <h1 className="text-3xl font-bold">Dashboard Overview</h1>
-            <div className="text-sm text-muted-foreground">
-              Last updated: {new Date().toLocaleDateString()}
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                Last updated: {new Date().toLocaleDateString()}
+              </div>
+              <Button 
+                onClick={() => navigate('/invoices')}
+                className="flex items-center gap-2"
+              >
+                <FileText className="h-4 w-4" />
+                Manage Invoices
+              </Button>
             </div>
           </div>
 

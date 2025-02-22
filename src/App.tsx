@@ -1,15 +1,16 @@
 
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import NotFound from "./pages/NotFound";
-import MIS from "./pages/MIS";
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import MIS from './pages/MIS';
+import Invoices from './pages/Invoices';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Index />} />
+        <Route path="/" element={<MIS />} />
         <Route path="/mis" element={<MIS />} />
+        <Route path="/invoices" element={<Invoices />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Router>
