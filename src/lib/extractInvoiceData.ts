@@ -4,21 +4,29 @@ import { supabase } from "./supabaseClient";
 
 export async function extractInvoiceData(file: File) {
   try {
+    console.log('Starting invoice data extraction...');
+    
     // Get the Gemini API key from Supabase
-    const { data, error: secretError } = await supabase
-      .rpc('get_secret', { secret_name: 'GEMINI_API_KEY' } as { secret_name: string });
+    const { data: apiKey, error: secretError } = await supabase
+      .rpc('get_secret', { secret_name: 'GEMINI_API_KEY' });
 
-    if (secretError || !data) {
+    if (secretError) {
+      console.error('Error fetching Gemini API key:', secretError);
       throw new Error('Failed to get Gemini API key');
     }
 
-    const GEMINI_API_KEY = data;
+    if (!apiKey) {
+      console.error('No Gemini API key found');
+      throw new Error('Gemini API key not found in secrets');
+    }
 
     // Initialize Gemini
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    console.log('Initializing Gemini model...');
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
 
     // Convert file to base64
+    console.log('Converting file to base64...');
     const base64Data = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
@@ -26,7 +34,10 @@ export async function extractInvoiceData(file: File) {
         const base64 = result.split(',')[1];
         resolve(base64);
       };
-      reader.onerror = reject;
+      reader.onerror = (error) => {
+        console.error('Error reading file:', error);
+        reject(new Error('Failed to read file'));
+      };
       reader.readAsDataURL(file);
     });
 
@@ -54,6 +65,7 @@ export async function extractInvoiceData(file: File) {
     }`;
 
     // Generate content
+    console.log('Sending request to Gemini API...');
     const result = await model.generateContent([
       prompt,
       {
@@ -67,11 +79,19 @@ export async function extractInvoiceData(file: File) {
     const response = await result.response;
     const text = response.text();
     
+    console.log('Parsing extracted data...');
     // Parse the JSON response
-    const extractedData = JSON.parse(text);
-    return extractedData;
+    try {
+      const extractedData = JSON.parse(text);
+      console.log('Successfully extracted invoice data:', extractedData);
+      return extractedData;
+    } catch (parseError) {
+      console.error('Error parsing Gemini response:', parseError);
+      console.error('Raw response:', text);
+      throw new Error('Failed to parse invoice data from Gemini response');
+    }
   } catch (error) {
-    console.error('Error extracting invoice data:', error);
+    console.error('Error in invoice data extraction:', error);
     throw error;
   }
 }

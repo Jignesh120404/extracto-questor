@@ -61,20 +61,25 @@ const Invoices = () => {
   const handleFileSelect = async (file: File) => {
     try {
       setIsProcessing(true);
+      console.log('Processing file:', file.name);
       
       const extractedData = await extractInvoiceData(file);
-      
+      console.log('Extracted data:', extractedData);
+
       const { error: insertError } = await supabase
         .from('invoices')
         .insert([extractedData]);
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('Error inserting invoice:', insertError);
+        throw insertError;
+      }
 
       await fetchInvoices();
       toast.success('Invoice processed successfully');
     } catch (error) {
       console.error('Error processing invoice:', error);
-      toast.error('Failed to process invoice');
+      toast.error(error instanceof Error ? error.message : 'Failed to process invoice');
     } finally {
       setIsProcessing(false);
     }
