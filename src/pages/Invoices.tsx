@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "../lib/supabaseClient";
@@ -16,6 +15,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
+import { extractInvoiceData } from "../lib/extractInvoiceData";
+import { Loader2 } from "lucide-react";
 
 interface Invoice {
   id: string;
@@ -34,6 +35,7 @@ const Invoices = () => {
   const navigate = useNavigate();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const fetchInvoices = async () => {
     try {
@@ -57,9 +59,25 @@ const Invoices = () => {
   }, []);
 
   const handleFileSelect = async (file: File) => {
-    // Here you would implement your invoice scanning logic
-    // After successful scan and data extraction:
-    await fetchInvoices(); // Refresh the list
+    try {
+      setIsProcessing(true);
+      
+      const extractedData = await extractInvoiceData(file);
+      
+      const { error: insertError } = await supabase
+        .from('invoices')
+        .insert([extractedData]);
+
+      if (insertError) throw insertError;
+
+      await fetchInvoices();
+      toast.success('Invoice processed successfully');
+    } catch (error) {
+      console.error('Error processing invoice:', error);
+      toast.error('Failed to process invoice');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -83,7 +101,17 @@ const Invoices = () => {
           <div className="grid gap-8">
             <div className="p-6 border rounded-lg bg-card">
               <h2 className="text-lg font-semibold mb-4">Upload New Invoice</h2>
-              <FileUpload onFileSelect={handleFileSelect} />
+              <div className="relative">
+                <FileUpload onFileSelect={handleFileSelect} />
+                {isProcessing && (
+                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center rounded-xl">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Processing invoice...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="border rounded-lg bg-card">

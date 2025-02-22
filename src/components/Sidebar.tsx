@@ -1,5 +1,5 @@
 
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   FileText,
@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 
 const Sidebar = () => {
+  const location = useLocation();
+
   return (
     <div className="w-64 bg-sidebar min-h-screen border-r border-gray-200 p-4">
       <div className="flex items-center gap-2 mb-8">
@@ -21,14 +23,18 @@ const Sidebar = () => {
       <nav className="space-y-2">
         <Link
           to="/mis"
-          className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg bg-accent/50 text-accent-foreground"
+          className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-accent/50 transition-colors ${
+            location.pathname === '/mis' ? 'bg-accent/50 text-accent-foreground' : 'text-muted-foreground hover:text-accent-foreground'
+          }`}
         >
           <BarChart className="h-4 w-4" />
           Dashboard
         </Link>
         <Link
-          to="#"
-          className="flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-accent/50 text-muted-foreground hover:text-accent-foreground transition-colors"
+          to="/invoices"
+          className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg hover:bg-accent/50 transition-colors ${
+            location.pathname === '/invoices' ? 'bg-accent/50 text-accent-foreground' : 'text-muted-foreground hover:text-accent-foreground'
+          }`}
         >
           <FileText className="h-4 w-4" />
           Invoices
