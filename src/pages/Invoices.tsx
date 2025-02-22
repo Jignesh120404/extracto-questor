@@ -14,7 +14,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/card";
+} from "@/components/ui/table";
 import { toast } from "sonner";
 
 interface Invoice {
